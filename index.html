@@ -20,10 +20,9 @@
     .panel h2 { margin:0 0 10px; font:500 20px Georgia, serif; }
     form { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
     label { display:block; color:var(--muted); font:11px 'Courier New', monospace; letter-spacing:.06em; margin:0 0 6px; text-transform:uppercase; }
-    select { width:100%; height:40px; appearance:none; border:1px solid #c8cabc; border-radius:5px; padding:0 14px; background:#fff; color:var(--ink); font:16px 'Courier New', monospace; cursor:pointer; }
-    select:focus-visible, button:focus-visible { outline:3px solid #9fc3a4; outline-offset:2px; }
-    .select-wrap { position:relative; }
-    .select-wrap::after { content:'▾'; position:absolute; right:14px; top:6px; pointer-events:none; color:var(--green); }
+    input[type="text"] { width:100%; height:40px; border:1px solid #c8cabc; border-radius:5px; padding:0 14px; background:#fff; color:var(--ink); font:16px 'Courier New', monospace; }
+    input[type="text"]:focus-visible, button:focus-visible { outline:3px solid #9fc3a4; outline-offset:2px; }
+    input.invalid { border-color:#a33a32; background:#fff7f5; }
     .submit { grid-column:auto; min-width:160px; height:40px; padding:0 14px; white-space:nowrap; border:0; border-radius:5px; background:var(--green); color:white; font-weight:600; cursor:pointer; }
     .submit:hover { background:var(--green-dark); }
     .results { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:13px; }
@@ -32,6 +31,7 @@
     .result-label { color:var(--muted); font:10px 'Courier New', monospace; letter-spacing:.1em; }
     .value { display:block; color:var(--green); font:40px/.98 Georgia, serif; margin-top:4px; }
     .status { min-height:18px; color:var(--muted); font-size:12px; margin:8px 0 0; }
+    .status.error { color:#a33a32; font-weight:600; }
     .equations { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
     .equations span { background:#e8e9de; color:#3d5a46; border-radius:4px; padding:7px 9px; font:10px 'Courier New', monospace; }
     @media (max-width:560px) { header { padding:0 16px; } .tag { display:none; } main { margin:26px auto; } .panel { padding:18px; } form { grid-template-columns:1fr 1fr; } .submit { grid-column:1 / -1; } }
@@ -46,17 +46,17 @@
   <main>
     <p class="eyebrow">Half adder · Input / Output</p>
     <h1>Calculate the output</h1>
-    <p class="intro">Choose a 0 or 1 for each input. The half adder returns a Sum bit and a Carry bit.</p>
+    <p class="intro">Enter 0 or 1 for each input. The half adder returns a Sum bit and a Carry bit.</p>
     <section class="panel" aria-labelledby="input-title">
       <h2 id="input-title">Enter the input bits</h2>
       <form id="halfAdderForm">
         <div>
           <label for="inputA">Input A</label>
-          <div class="select-wrap"><select id="inputA" name="inputA"><option value="0" selected>0</option><option value="1">1</option></select></div>
+          <input type="text" id="inputA" name="inputA" placeholder="Enter 0 or 1" aria-describedby="status">
         </div>
         <div>
           <label for="inputB">Input B</label>
-          <div class="select-wrap"><select id="inputB" name="inputB"><option value="0" selected>0</option><option value="1">1</option></select></div>
+          <input type="text" id="inputB" name="inputB" placeholder="Enter 0 or 1" aria-describedby="status">
         </div>
         <button class="submit" type="submit">Calculate output</button>
       </form>
@@ -64,7 +64,7 @@
         <div class="result"><span class="result-label">SUM</span><output class="value" id="sumOutput">—</output></div>
         <div class="result"><span class="result-label">CARRY</span><output class="value" id="carryOutput">—</output></div>
       </div>
-      <p class="status" id="status">Select both inputs, then calculate.</p>
+      <p class="status" id="status">Enter both inputs, then calculate.</p>
       <div class="equations"><span>SUM = A XOR B</span><span>CARRY = A AND B</span></div>
     </section>
   </main>
@@ -72,15 +72,43 @@
     const form = document.getElementById('halfAdderForm');
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      const a = Number(document.getElementById('inputA').value);
-      const b = Number(document.getElementById('inputB').value);
+      const inputA = document.getElementById('inputA');
+      const inputB = document.getElementById('inputB');
+      const status = document.getElementById('status');
+      const sumOutput = document.getElementById('sumOutput');
+      const carryOutput = document.getElementById('carryOutput');
+
+      inputA.classList.remove('invalid');
+      inputB.classList.remove('invalid');
+      status.classList.remove('error');
+
+      const aText = inputA.value.trim();
+      const bText = inputB.value.trim();
+      const validA = aText === '0' || aText === '1';
+      const validB = bText === '0' || bText === '1';
+
+      if (!validA || !validB) {
+        if (!validA) inputA.classList.add('invalid');
+        if (!validB) inputB.classList.add('invalid');
+
+        sumOutput.value = '—';
+        sumOutput.textContent = '—';
+        carryOutput.value = '—';
+        carryOutput.textContent = '—';
+        status.textContent = 'Invalid input. Enter 0 or 1 in both input boxes.';
+        status.classList.add('error');
+        return;
+      }
+
+      const a = Number(aText);
+      const b = Number(bText);
       const sum = a ^ b;
       const carry = a & b;
-      document.getElementById('sumOutput').value = String(sum);
-      document.getElementById('sumOutput').textContent = String(sum);
-      document.getElementById('carryOutput').value = String(carry);
-      document.getElementById('carryOutput').textContent = String(carry);
-      document.getElementById('status').textContent = `Input A = ${a}, Input B = ${b}. Output: Sum = ${sum}, Carry = ${carry}.`;
+      sumOutput.value = String(sum);
+      sumOutput.textContent = String(sum);
+      carryOutput.value = String(carry);
+      carryOutput.textContent = String(carry);
+      status.textContent = `Input A = ${a}, Input B = ${b}. Output: Sum = ${sum}, Carry = ${carry}.`;
     });
   </script>
 </body>
